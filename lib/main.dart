@@ -4,13 +4,7 @@ import 'providers/task_provider.dart';
 import 'screens/home_screen.dart';
 
 void main() {
-  runApp(
-    // We wrap our App with the Provider so all screens can access the tasks list
-    ChangeNotifierProvider(
-      create: (context) => TaskProvider(),
-      child: const MyApp(),
-    ),
-  );
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -18,14 +12,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Task Manager',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: Colors.blue,
+    return ChangeNotifierProvider(
+      create: (context) => TaskProvider(),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: const HomeScreen(),
       ),
-      home: const HomeScreen(), // Launches our task list screen first
     );
   }
 }
