@@ -38,38 +38,48 @@ class HomeScreen extends StatelessWidget {
         onPressed: () async {
           // 1. Pick Date
           final date = await showDatePicker(
-            context: context, 
-            initialDate: DateTime.now(), 
-            firstDate: DateTime.now(), 
-            lastDate: DateTime(2030)
+            context: context,
+            initialDate: DateTime.now(),
+            firstDate: DateTime.now(),
+            lastDate: DateTime(2030),
           );
           if (date == null) return;
 
           // 2. Pick Time
           if (!context.mounted) return;
           final time = await showTimePicker(
-            context: context, 
-            initialTime: TimeOfDay.now()
+            context: context,
+            initialTime: TimeOfDay.now(),
           );
           if (time == null) return;
-          
-          final finalDateTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
 
-          // 3. Prompt for Title and Add
-          final TextEditingController controller = TextEditingController();
+          // Combined Date and Time
+          final finalDateTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+          final TextEditingController textController = TextEditingController();
+
+          // 3. Show dialog to type the title
           if (!context.mounted) return;
-          showDialog(context: context, builder: (ctx) => AlertDialog(
-            title: const Text('Add Task'),
-            content: TextField(controller: controller, autofocus: true),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-              ElevatedButton(onPressed: () {
-                // Now passing both arguments!
-                taskProvider.addTask(controller.text, finalDateTime);
-                Navigator.pop(ctx);
-              }, child: const Text('Add'))
-            ],
-          ));
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Add Task'),
+              content: TextField(controller: textController, autofocus: true),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    taskProvider.addTask(textController.text, finalDateTime);
+                    Navigator.pop(ctx);
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                  child: const Text('Add', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          );
         },
         child: const Icon(Icons.add, color: Colors.white),
       ),

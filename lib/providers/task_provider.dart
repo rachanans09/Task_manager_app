@@ -11,15 +11,16 @@ class TaskProvider extends ChangeNotifier {
     _loadTasks();
   }
 
-  // This now correctly requires both title and deadline
+  // Expects both the title and the deadline date/time
   void addTask(String title, DateTime deadline) {
     if (title.trim().isEmpty) return;
-    
+
     final newTask = Task(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       title: title,
       createdAt: deadline,
     );
+    
     _tasks.add(newTask);
     notifyListeners();
     _saveTasks();
@@ -28,7 +29,7 @@ class TaskProvider extends ChangeNotifier {
   void toggleTaskStatus(String id) {
     final index = _tasks.indexWhere((task) => task.id == id);
     if (index != -1) {
-      _tasks[index].toggleCompleted();
+      _tasks[index].isCompleted = !_tasks[index].isCompleted;
       notifyListeners();
       _saveTasks();
     }
@@ -56,4 +57,3 @@ class TaskProvider extends ChangeNotifier {
     }
   }
 }
-
