@@ -1,70 +1,49 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/task.dart';
 
 class TaskProvider with ChangeNotifier {
-  List<Task> _tasks = [];
+  final List<Task> _tasks = [];
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   List<Task> get tasks => _tasks;
 
   TaskProvider() {
-    loadTasks(); // Automatically load saved tasks when the app starts
-  }
-
-  // Add a new task and save it
-  void addTask(String title, DateTime date, TimeOfDay time) async {
-    final newTask = Task(
-      id: DateTime.now().toString(),
-      title: title,
-      date: date,
-      time: time,
-    );
-    _tasks.add(newTask);
-    notifyListeners();
-    await saveTasks(); // Save to local storage
-  }
-
-  // Delete a task and update storage
-  void deleteTask(String id) async {
-    _tasks.removeWhere((task) => task.id == id);
-    notifyListeners();
-    await saveTasks(); // Save updated list to local storage
-  }
-
-  // Save data locally
-  Future<void> saveTasks() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<Map<String, dynamic>> taskMapList = _tasks.map((task) {
-      return {
-        'id': task.id,
-        'title': task.title,
-        'date': task.date.toIso8601String(),
-        'hour': task.time.hour,
-        'minute': task.time.minute,
-      };
-    }).toList();
-
-    await prefs.setString('user_tasks', jsonEncode(taskMapList));
-  }
-
-  // Load data from local storage
-  Future<void> loadTasks() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? cachedTasks = prefs.getString('user_tasks');
-
-    if (cachedTasks != null) {
-      final List<dynamic> decodedList = jsonDecode(cachedTasks);
-      _tasks = decodedList.map((item) {
-        return Task(
-          id: item['id'],
-          title: item['title'],
-          date: DateTime.parse(item['date']),
-          time: TimeOfDay(hour: item['hour'], minute: item['minute']),
-        );
-      }).toList();
+    // This constantly listens to the cloud. When your friend adds a task, 
+    // it automatically updates your screen instantly!
+    _firestore.collection('tasks').orderBy('createdAt', descending: true).snapshots().listen((snapshot) {
+      _tasks.clear();
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        _tasks.add(Task(
+          id: doc.id,
+          title: data['title'] ?? '',
+          isCompleted: data['isCompleted'] ?? false,
+        ));
+      }
       notifyListeners();
-    }
+    });
+  }
+
+  // Pushes a brand new task up to the internet database
+  Future<void> addTask(String title) async {
+    if (title.trim().isEmpty) return;
+    await _firestore.collection('tasks').add({
+      'title': title,
+      'isCompleted': false,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // Toggles checking/unchecking a task for everyone
+  Future<void> toggleTaskStatus(String id, bool isCompleted) async {
+    await _firestore.collection('tasks').doc(id).update({
+      'isCompleted': isCompleted,
+    });
+  }
+
+  // Deletes a task from everyone's screens
+  Future<void> deleteTask(String id) async {
+    await _firestore.collection('tasks').doc(id).delete();
   }
 }
-
