@@ -18,21 +18,80 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAtMj6grLqexi0LYkwB0rkV1xvPPQjAqRs",
-      authDomain: "taskmanagerapp-byrachana.firebaseapp.com",
-      projectId: "taskmanagerapp-byrachana",
-      storageBucket: "taskmanagerapp-byrachana.firebasestorage.app",
-      messagingSenderId: "585866987476",
-      appId: "1:585866987476:web:e73a3c04a907eb5fcfb841"
-    };
+// 1. Firebase Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAtMj6grLqexi0LYkwB0rkV1xvPPQjAqRs",
+  authDomain: "taskmanagerapp-byrachana.firebaseapp.com",
+  projectId: "taskmanagerapp-byrachana",
+  storageBucket: "taskmanagerapp-byrachana.firebasestorage.app",
+  messagingSenderId: "585866987476",
+  appId: "1:585866987476:web:e73a3c04a907eb5fcfb841"
+};
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
+// 2. Initialize App & Database
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// 3. DOM Elements (Connecting to your HTML interface elements)
+const taskTitleInput = document.querySelector('input[placeholder="Task Title"]');
+const saveTaskBtn = document.querySelector('button, .save-task-btn'); // Make sure this matches your save button's class/tag
+const taskListContainer = document.querySelector('.task-list, main'); // Make sure this matches the container element where tasks are displayed
+
+// 4. Save Task Function (Pushes new tasks to the cloud)
+if (saveTaskBtn) {
+  saveTaskBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    
+    const titleText = taskTitleInput.value.trim();
+    if (titleText === "") return alert("Please type a task title!");
+
+    try {
+      await addDoc(collection(db, "tasks"), {
+        title: titleText,
+        date: "No Date Chosen!", // Hook up your date picker values here later
+        time: "No Time Chosen!", // Hook up your time picker values here later
+        createdAt: new Date()
+      });
+      
+      // Clear input field after successful save
+      taskTitleInput.value = "";
+    } catch (error) {
+      console.error("Error saving task: ", error);
+    }
+  });
+}
+
+// 5. Real-Time Listener (Instantly syncs updates to your screen and your friend's screen)
+const q = query(collection(db, "tasks"), orderBy("createdAt", "desc"));
+
+onSnapshot(q, (snapshot) => {
+  // Clear out the current UI text container
+  if (taskListContainer) taskListContainer.innerHTML = "";
+
+  if (snapshot.empty) {
+    if (taskListContainer) taskListContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: gray;">No tasks added yet!</div>';
+    return;
+  }
+
+  snapshot.forEach((doc) => {
+    const taskData = doc.data();
+    
+    // Create HTML structure dynamically for each individual task card
+    const taskItem = document.createElement('div');
+    taskItem.className = 'task-item'; // Customize this with your preferred CSS styling
+    taskItem.style.cssText = "background: white; padding: 15px; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);";
+    
+    taskItem.innerHTML = `
+      <h3>${taskData.title}</h3>
+      <p style="font-size: 12px; color: gray;">${taskData.date} | ${taskData.time}</p>
+    `;
+    
+    if (taskListContainer) taskListContainer.appendChild(taskItem);
+  });
+});
     const db = getFirestore(app);
   </script>
 
